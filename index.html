@@ -497,11 +497,71 @@
 </div>
 
 <script>
+  const BASE_API_URL = "http://localhost:8128/api";
+
+  async function fetchData(endpoint) {
+    try {
+      const response = await fetch(`${BASE_API_URL}${endpoint}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`Erro ao obter dados de ${endpoint}:`, error);
+      return null;
+    }
+  }
+
+  function updateMarketScore(data) {
+    if (!data || !data.metrics) return;
+    const scoreElement = document.querySelector('.score-num[style*="#26c281"]'); // Exemplo: XAUUSD score
+    if (scoreElement) {
+      // Este é um exemplo, a lógica real precisará de ser mais sofisticada
+      // para mapear os dados da API para os elementos visuais corretos no Score de Mercado.
+      // Por agora, vamos apenas registar na consola.
+      console.log("Dados do Score de Mercado para atualizar:", data);
+    }
+  }
+
+  function updateNewsImpact(data) {
+    if (!data || !data.items) return;
+    const newsContainer = document.querySelector('.card:nth-child(4) .news-row').parentElement;
+    if (newsContainer) {
+      newsContainer.innerHTML = ''; // Limpa as notícias existentes
+      data.items.forEach(news => {
+        const newsRow = `
+          <div class="news-row">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+              <span class="news-time">${news.time}</span>
+              <span class="badge-d">${news.impact}</span>
+              <span style="font-size:9px;color:#5a6080">Em breve</span>
+            </div>
+            <div class="news-text">${news.event}</div>
+          </div>
+        `;
+        newsContainer.innerHTML += newsRow;
+      });
+    }
+  }
+
+  async function loadInitialData() {
+    const marketScoreData = await fetchData("/market/score");
+    if (marketScoreData) {
+      updateMarketScore(marketScoreData);
+    }
+
+    const newsImpactData = await fetchData("/market/news-impact");
+    if (newsImpactData) {
+      updateNewsImpact(newsImpactData);
+    }
+  }
+
   function sendPrompt(promptText) {
     console.log("Frontend enviou prompt para Rony:", promptText);
-    // No futuro, esta função vai ser substituída por uma chamada de API
-    // que me permite receber e processar este prompt.
-    // Por exemplo: fetch('/api/hermes/command', { method: 'POST', body: JSON.stringify({ prompt: promptText }) });
+    // Aqui podes adicionar lógica para chamar diferentes APIs com base no promptText
+    // Por exemplo, para "Abre o Radar de Mercado", chamarias uma API específica.
   }
+
+  document.addEventListener("DOMContentLoaded", loadInitialData);
 </script>
 
