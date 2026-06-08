@@ -558,6 +558,12 @@
 
   function sendPrompt(promptText) {
     console.log("Frontend enviou prompt para Rony:", promptText);
+    if (promptText === 'Mostra todas as zonas de manipulação detetadas pelo Hermes agora') {
+      fetchData("/trading-gps").then(data => {
+        console.log("Dados do Radar de Manipulação:", data);
+        // TODO: Adicionar lógica para exibir os dados no frontend (ex: modal, nova secção)
+      });
+    }
     // Aqui podes adicionar lógica para chamar diferentes APIs com base no promptText
     // Por exemplo, para "Abre o Radar de Mercado", chamarias uma API específica.
   }
