@@ -1,9 +1,43 @@
+"use client"
+
 import { Calendar, Activity } from "lucide-react"
-import { Panel } from "./panel"
-import { newsItems } from "@/lib/dashboard-data"
+import { Panel } from "."
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 
+type NewsItem = { time: string; title: string; impact: string; when: string }
+
 export function NewsPanel() {
+  const [items, setItems] = useState<NewsItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetch("/api/market/news-impact", { cache: "no-store" })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
+        if (!cancelled) {
+          setItems((data?.items ?? []) as NewsItem[])
+          setUpdatedAt(data?.updated_at ?? null)
+        }
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Falha ao carregar notícias")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return (
     <Panel className="flex flex-col p-4">
       <div className="flex items-center justify-between">
@@ -13,26 +47,36 @@ export function NewsPanel() {
         <Activity className="h-4 w-4 text-primary" />
       </div>
 
-      <ul className="mt-3 flex flex-1 flex-col gap-3">
-        {newsItems.map((n, i) => (
-          <li key={i} className="flex items-center gap-3">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-secondary/60 text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
-            </span>
-            <span className="font-mono text-[12px] text-muted-foreground">{n.time}</span>
-            <span className="flex-1 text-[12.5px] leading-tight">{n.title}</span>
-            <span
-              className={cn(
-                "rounded px-1.5 py-0.5 text-[10px] font-bold",
-                n.impact === "ALTO" ? "bg-bear/15 text-bear" : "bg-warn/15 text-warn",
-              )}
-            >
-              {n.impact}
-            </span>
-            <span className="w-14 text-right text-[10.5px] text-muted-foreground">{n.when}</span>
-          </li>
-        ))}
-      </ul>
+      {loading ? (
+        <p className="mt-3 text-[11px] text-muted-foreground">A carregar…</p>
+      ) : error ? (
+        <p className="mt-3 text-[11px] text-destructive">{error}</p>
+      ) : (
+        <ul className="mt-3 flex flex-1 flex-col gap-3">
+          {items.map((n, i) => (
+            <li key={`${n.time}-${n.title}-${i}`} className="flex items-center gap-3">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-secondary/60 text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5" />
+              </span>
+              <span className="font-mono text-[12px] text-muted-foreground">{n.time}</span>
+              <span className="flex-1 text-[12.5px] leading-tight">{n.title}</span>
+              <span
+                className={cn(
+                  "rounded px-1.5 py-0.5 text-[10px] font-bold",
+                  n.impact === "ALTO" ? "bg-bear/15 text-bear" : "bg-warn/15 text-warn",
+                )}
+              >
+                {n.impact}
+              </span>
+              <span className="w-14 text-right text-[10.5px] text-muted-foreground">{n.when}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="mt-2 text-[10px] text-muted-foreground">
+        Actualizado: {updatedAt ? new Date(updatedAt).toLocaleTimeString() : "—"}
+      </p>
 
       <button
         type="button"
