@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronUp, ChevronDown } from "lucide-react"
-import { Panel } from "."
+import { Panel } from "./panel"
 import { useState, useEffect } from "react"
 
 export function LiquidityPanel() {

@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronDown } from "lucide-react"
-import { Panel } from "."
+import { Panel } from "./panel"
 import { Donut } from "./charts/donut"
 import { useState, useEffect } from "react"
 

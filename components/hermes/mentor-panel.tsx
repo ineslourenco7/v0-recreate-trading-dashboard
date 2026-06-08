@@ -1,6 +1,6 @@
 "use client"
 
-import { Panel } from "."
+import { Panel } from "./panel"
 import { useState, useEffect } from "react"
 
 type Psychology = {

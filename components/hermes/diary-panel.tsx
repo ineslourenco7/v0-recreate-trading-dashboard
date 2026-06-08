@@ -1,6 +1,6 @@
 "use client"
 
-import { Panel } from "."
+import { Panel } from "./panel"
 import { Heatmap } from "./charts/heatmap"
 import { useState, useEffect } from "react"
 

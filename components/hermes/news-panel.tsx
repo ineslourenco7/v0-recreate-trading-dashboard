@@ -1,7 +1,6 @@
 "use client"
 
-import { Calendar, Activity } from "lucide-react"
-import { Panel } from "."
+import { Panel } from "./panel"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 
@@ -38,13 +37,16 @@ export function NewsPanel() {
     }
   }, [])
 
+  const impactStyles: Record<string, string> = {
+    ALTO: "bg-[#e05c5c]/15 text-[#e05c5c]",
+    MÉDIO: "bg-[#d4a017]/15 text-[#d4a017]",
+  }
+
   return (
     <Panel className="flex flex-col p-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-          Notícias de Impacto
-        </h2>
-        <Activity className="h-4 w-4 text-primary" />
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Notícias de Impacto</h2>
+        <span aria-hidden="true" className="text-sm">⚡</span>
       </div>
 
       {loading ? (
@@ -56,27 +58,18 @@ export function NewsPanel() {
           {items.map((n, i) => (
             <li key={`${n.time}-${n.title}-${i}`} className="flex items-center gap-3">
               <span className="flex h-7 w-7 items-center justify-center rounded-md bg-secondary/60 text-muted-foreground">
-                <Calendar className="h-3.5 w-3.5" />
+                <span aria-hidden="true" className="text-xs">📅</span>
               </span>
               <span className="font-mono text-[12px] text-muted-foreground">{n.time}</span>
               <span className="flex-1 text-[12.5px] leading-tight">{n.title}</span>
-              <span
-                className={cn(
-                  "rounded px-1.5 py-0.5 text-[10px] font-bold",
-                  n.impact === "ALTO" ? "bg-bear/15 text-bear" : "bg-warn/15 text-warn",
-                )}
-              >
-                {n.impact}
-              </span>
+              <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-bold", impactStyles[n.impact] ?? "bg-secondary text-muted-foreground")}>{n.impact}</span>
               <span className="w-14 text-right text-[10.5px] text-muted-foreground">{n.when}</span>
             </li>
           ))}
         </ul>
       )}
 
-      <p className="mt-2 text-[10px] text-muted-foreground">
-        Actualizado: {updatedAt ? new Date(updatedAt).toLocaleTimeString() : "—"}
-      </p>
+      <p className="mt-2 text-[10px] text-muted-foreground">Actualizado: {updatedAt ? new Date(updatedAt).toLocaleTimeString() : "—"}</p>
 
       <button
         type="button"
