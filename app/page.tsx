@@ -40,6 +40,12 @@ export default function CockpitPage() {
             • center (7): top stat row, chart, and the four analysis panels
             • right rail (3): global map, mentor, performance
           */}
+          {/*
+            Region 1 — "war room" header band:
+            • left rail (2): market score
+            • center (7): top stat row + chart
+            • right rail (3): global map + mentor
+          */}
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-12">
             {/* Left rail */}
             <div className="flex flex-col gap-3 xl:col-span-2">
@@ -57,20 +63,28 @@ export default function CockpitPage() {
 
               {/* Chart */}
               <ChartPanel />
-
-              {/* Four analysis panels under the chart */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <ScenarioPanel />
-                <DiaryPanel />
-                <TopSetupsPanel />
-                <CopyTradingPanel />
-              </div>
             </div>
 
             {/* Right rail */}
             <div className="flex flex-col gap-3 lg:col-span-2 xl:col-span-3">
               <GlobalMapPanel />
               <MentorPanel />
+            </div>
+          </div>
+
+          {/*
+            Region 2 — analysis band:
+            • the four analysis panels span the left 9 columns
+            • performance aligns to the right 3 columns (mirrors the original)
+          */}
+          <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-12">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 lg:col-span-9">
+              <ScenarioPanel />
+              <DiaryPanel />
+              <TopSetupsPanel />
+              <CopyTradingPanel />
+            </div>
+            <div className="lg:col-span-3">
               <PerformancePanel />
             </div>
           </div>
