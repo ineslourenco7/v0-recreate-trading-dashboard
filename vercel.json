@@ -1,0 +1,23 @@
+{
+  "builds": [
+    {
+      "src": "next.config.mjs",
+      "use": "@vercel/next"
+    },
+    {
+      "src": "api/fastapi-backend/main.py",
+      "use": "@vercel/python",
+      "config": { "maxLambdaSize": "15mb", "runtime": "python3.9" }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/fastapi-backend/(.*)",
+      "dest": "api/fastapi-backend/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "$1"
+    }
+  ]
+}
