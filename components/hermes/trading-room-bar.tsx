@@ -4,7 +4,7 @@ import Image from "next/image"
 import { Check, Send } from "lucide-react"
 import { Panel } from "./panel"
 import { chatMessages } from "@/lib/dashboard-data"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 const onlineAvatars = [
   "/avatars/trader1.png",
@@ -14,19 +14,76 @@ const onlineAvatars = [
   "/avatars/trader1.png",
 ]
 
+const STORAGE_KEY = "hermes-trading-room-local-messages"
+const ASSETS = ["GLOBAL", "XAUUSD", "BTCUSD", "EURUSD", "NAS100"] as const
+
+type Asset = (typeof ASSETS)[number]
+
 type RoomMessage = {
+  id: string
   time: string
   avatar: string
   name: string
   text: string
+  asset: Asset
   done?: boolean
 }
 
+function normalizeAsset(value: string): Asset {
+  const upper = value.toUpperCase()
+  return ASSETS.includes(upper as Asset) ? (upper as Asset) : "GLOBAL"
+}
+
+function createInitialMessages(): RoomMessage[] {
+  return chatMessages.slice(0, 3).map((message, index) => ({
+    id: `seed-${index}`,
+    time: message.time,
+    avatar: message.avatar,
+    name: message.name,
+    text: message.text,
+    asset: index === 0 ? "XAUUSD" : index === 1 ? "BTCUSD" : "GLOBAL",
+    done: message.done,
+  }))
+}
+
 export function TradingRoomBar() {
-  const initialMessages = useMemo<RoomMessage[]>(() => chatMessages.slice(0, 3), [])
+  const initialMessages = useMemo<RoomMessage[]>(() => createInitialMessages(), [])
   const [messages, setMessages] = useState<RoomMessage[]>(initialMessages)
+  const [activeAsset, setActiveAsset] = useState<Asset>("GLOBAL")
   const [text, setText] = useState("")
-  const [status, setStatus] = useState<string | null>(null)
+  const [status, setStatus] = useState<string | null>("Modo local: pronto para Socket.io")
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(STORAGE_KEY)
+      if (!saved) return
+
+      const parsed = JSON.parse(saved) as RoomMessage[]
+      if (Array.isArray(parsed)) {
+        setMessages(
+          parsed.map((message) => ({
+            ...message,
+            asset: normalizeAsset(message.asset || "GLOBAL"),
+          })),
+        )
+      }
+    } catch {
+      setStatus("Não foi possível ler o histórico local")
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+    } catch {
+      setStatus("Histórico local indisponível")
+    }
+  }, [messages])
+
+  const visibleMessages = useMemo(() => {
+    if (activeAsset === "GLOBAL") return messages
+    return messages.filter((message) => message.asset === activeAsset || message.asset === "GLOBAL")
+  }, [activeAsset, messages])
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -35,27 +92,18 @@ export function TradingRoomBar() {
 
     const now = new Date()
     const message: RoomMessage = {
+      id: `local-${now.getTime()}`,
       time: now.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" }),
       avatar: "/avatars/ines.png",
       name: "Inês",
       text: clean,
+      asset: activeAsset,
       done: true,
     }
 
-    setMessages((current) => [message, ...current].slice(0, 5))
+    setMessages((current) => [message, ...current].slice(0, 20))
     setText("")
-    setStatus("Mensagem registada localmente")
-
-    try {
-      await fetch("/api/room/messages", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: clean }),
-      })
-      setStatus("Mensagem enviada para a sala")
-    } catch {
-      setStatus("Sem servidor persistente: ficou guardada nesta sessão")
-    }
+    setStatus(`Mensagem local em ${activeAsset}`)
   }
 
   return (
@@ -63,15 +111,38 @@ export function TradingRoomBar() {
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
         <div className="shrink-0">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Sala de Trading
+            Sala Global
           </h2>
           {status && <p className="mt-1 text-[10.5px] text-muted-foreground">{status}</p>}
         </div>
 
+        <div className="flex shrink-0 flex-wrap gap-1" aria-label="Selecionar ativo da sala">
+          {ASSETS.map((asset) => (
+            <button
+              key={asset}
+              type="button"
+              onClick={() => {
+                setActiveAsset(asset)
+                setStatus(`Ativo selecionado: ${asset}`)
+              }}
+              className={`rounded-full border px-2.5 py-1 text-[10.5px] font-semibold transition ${
+                activeAsset === asset
+                  ? "border-primary/70 bg-primary/15 text-primary"
+                  : "border-border/70 bg-secondary/40 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {asset}
+            </button>
+          ))}
+        </div>
+
         <ul className="flex flex-1 flex-col gap-2 lg:flex-row lg:items-center lg:gap-5">
-          {messages.map((m, i) => (
-            <li key={`${m.time}-${i}`} className="flex min-w-0 items-center gap-2">
+          {visibleMessages.slice(0, 5).map((m) => (
+            <li key={m.id} className="flex min-w-0 items-center gap-2">
               <span className="font-mono text-[11px] text-muted-foreground">{m.time}</span>
+              <span className="rounded bg-secondary px-1.5 py-0.5 text-[9.5px] font-bold text-muted-foreground">
+                {m.asset}
+              </span>
               <Image
                 src={m.avatar || "/placeholder.svg"}
                 alt={`Avatar de ${m.name}`}
@@ -113,7 +184,7 @@ export function TradingRoomBar() {
             type="text"
             value={text}
             onChange={(event) => setText(event.target.value)}
-            placeholder="Escrever mensagem..."
+            placeholder={`Mensagem em ${activeAsset}...`}
             aria-label="Escrever mensagem"
             className="h-9 w-full min-w-[180px] rounded-lg border border-border/70 bg-secondary/50 px-3 text-sm outline-none transition focus:border-primary/50 focus:ring-1 focus:ring-primary/30 xl:w-56"
           />
