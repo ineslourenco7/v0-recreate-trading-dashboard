@@ -1,7 +1,10 @@
+"use client"
+
 import Image from "next/image"
 import { Check, Send } from "lucide-react"
 import { Panel } from "./panel"
 import { chatMessages } from "@/lib/dashboard-data"
+import { useMemo, useState } from "react"
 
 const onlineAvatars = [
   "/avatars/trader1.png",
@@ -11,21 +14,63 @@ const onlineAvatars = [
   "/avatars/trader1.png",
 ]
 
+type RoomMessage = {
+  time: string
+  avatar: string
+  name: string
+  text: string
+  done?: boolean
+}
+
 export function TradingRoomBar() {
+  const initialMessages = useMemo<RoomMessage[]>(() => chatMessages.slice(0, 3), [])
+  const [messages, setMessages] = useState<RoomMessage[]>(initialMessages)
+  const [text, setText] = useState("")
+  const [status, setStatus] = useState<string | null>(null)
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const clean = text.trim()
+    if (!clean) return
+
+    const now = new Date()
+    const message: RoomMessage = {
+      time: now.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" }),
+      avatar: "/avatars/ines.png",
+      name: "Inês",
+      text: clean,
+      done: true,
+    }
+
+    setMessages((current) => [message, ...current].slice(0, 5))
+    setText("")
+    setStatus("Mensagem registada localmente")
+
+    try {
+      await fetch("/api/room/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: clean }),
+      })
+      setStatus("Mensagem enviada para a sala")
+    } catch {
+      setStatus("Sem servidor persistente: ficou guardada nesta sessão")
+    }
+  }
+
   return (
     <Panel className="p-4">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-        {/* Title */}
         <div className="shrink-0">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Sala de Trading
           </h2>
+          {status && <p className="mt-1 text-[10.5px] text-muted-foreground">{status}</p>}
         </div>
 
-        {/* Messages */}
         <ul className="flex flex-1 flex-col gap-2 lg:flex-row lg:items-center lg:gap-5">
-          {chatMessages.map((m, i) => (
-            <li key={i} className="flex min-w-0 items-center gap-2">
+          {messages.map((m, i) => (
+            <li key={`${m.time}-${i}`} className="flex min-w-0 items-center gap-2">
               <span className="font-mono text-[11px] text-muted-foreground">{m.time}</span>
               <Image
                 src={m.avatar || "/placeholder.svg"}
@@ -41,7 +86,6 @@ export function TradingRoomBar() {
           ))}
         </ul>
 
-        {/* Members online */}
         <div className="flex shrink-0 items-center gap-3">
           <div className="text-right">
             <p className="text-[10.5px] text-muted-foreground">Membros Online</p>
@@ -64,10 +108,11 @@ export function TradingRoomBar() {
           </div>
         </div>
 
-        {/* Composer */}
-        <form className="flex shrink-0 items-center gap-2" aria-label="Enviar mensagem">
+        <form className="flex shrink-0 items-center gap-2" aria-label="Enviar mensagem" onSubmit={handleSubmit}>
           <input
             type="text"
+            value={text}
+            onChange={(event) => setText(event.target.value)}
             placeholder="Escrever mensagem..."
             aria-label="Escrever mensagem"
             className="h-9 w-full min-w-[180px] rounded-lg border border-border/70 bg-secondary/50 px-3 text-sm outline-none transition focus:border-primary/50 focus:ring-1 focus:ring-primary/30 xl:w-56"
